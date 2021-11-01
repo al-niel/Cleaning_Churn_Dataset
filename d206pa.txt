@@ -1,0 +1,123 @@
+# Importing PANDAS and numpy libraries and 
+#importing missingno data visualization library
+#import scipy for stats
+
+import pandas as pd
+import numpy as np
+import missingno as msno
+import scipy.stats as as stats
+
+#loading Churn dataset
+df=pd.read_csv(r'churn_raw_data[1].csv')
+
+#prints dataframe info with column names 
+print(df)
+
+#gives some stats on each column: quartiles, counts, mean, min/max, std
+df.describe()
+
+#drop unnamed column
+df = df.drop(df.columns[0], axis = 1)
+
+#rename survey columns
+df.rename(columns = {'item1':'Responses',
+'item2':'Fixes',
+'item3':'Replacements',
+'item4':'Reliability',
+'item5':'Options',
+'item6':'Respectfulness',
+'item7':'Courteous',
+'item8':'Listening'},
+inplace=True)
+
+
+#verify unnamed column was dropped and columns renamed 
+print(df)
+
+
+#returns info on the data frame, contains names of columns, data-types and non-null counts 
+df.info()
+
+#returns list of columns with data types and null value count
+df.isnull().sum()
+
+#the following columns have null values: children, age, income, techie, phone, techsupport, tenure, bandwidth_GB_year
+# before deciding how to proceed with treating the missing data, I will use missngno to do some visualizations of the #missing data
+
+
+#returns inline histograms for Children column
+df.hist(column='Children')
+
+#Children column is skewed to the right and is a discrete variable. Given the skew and data type, I will treat the missing data with imputation using the median
+
+#returns inline histogram for Age column
+df.hist(column='Age')
+
+#returns mean for non-missing values in Age column
+df['Age'].mean()
+
+#returns median for non-missing values in Age column
+df['Age'].median()
+
+#returns mode for non-missing values in Age column
+df['Age'].mode()
+
+#Age column has a uniform distribution. Given the distribution and data type, I will treat the missing data with imputation using the median
+
+#returns inline histogram for income
+df.hist(column='Income')
+#income column is skewed to the right and is a discrete variable. Given the skew and data type, I will treat the missing data with imputation using the median
+
+#techie, phone, techsupport columns are non numerical, python won't plot it but since it is a quantitative variable we will
+#just use the mode to impute doesn’t really require further analysis. 
+
+#returns inline histogram for tenure
+df.hist(column='Tenure')
+#Tenure column is bimodal. Given the skew and data type, I will treat the missing data with imputation using the median
+
+#returns inline histogram for bandwidth_GB_year
+df.hist(column='Bandwidth_GB_Year')
+#Bandwidth_GB_Year is bimodal. Given the skew and data type, I will treat the missing data with imputation using the median
+
+#imputes data for columns with null values with either the mean, median, or mode. 
+df['Children'] = df['Children'].fillna(df['Children'].median())
+df['Age'] = df['Age'].fillna(df['Age'].median())
+df['Income'] = df['Income'].fillna(df['Income'].median())
+df['Tenure'] = df['Tenure'].fillna(df['Tenure'].median())
+df['Bandwidth_GB_Year'] = df['Bandwidth_GB_Year'].fillna(df['Bandwidth_GB_Year'].median())
+df['Techie'] = df['Techie'].fillna(df['Techie'].mode()[0])
+df['Phone'] = df['Phone'].fillna(df['Phone'].mode()[0])
+df['TechSupport'] = df ['Techsupport'].fillna(df['Techsupport'].mode()[0])
+
+#verify data has been imputed
+df.isnull().sum()
+
+#check distribution after imputation
+df.hist(column='Children')
+df.hist(column='Age')
+df.hist(column='Income')
+df.hist(column='Tenure')
+df.hist(column='Bandwidth_GB_Year')
+
+
+
+#now that the missing values have been imputed we can move on to outliers
+
+#we will begin by converting all categorical data to numerical
+df2 = df.apply(lambda x: pd.factorize(x)[0])
+
+#we will then create a second data frame with the z scores
+z = np.abs(stats.zscore(df2))
+
+#print to verify 
+print(z)
+
+#view the outliers
+threshold = 3
+print(np.where(z > 3))
+
+#remove all data points with a z-score >3
+df = df[(z < 3).all(axis=1)]
+
+#verify outliers were removed
+df.count()
